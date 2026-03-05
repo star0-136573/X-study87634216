@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X-Study Feed</title>
+    <!-- Import your external data -->
+    <script src="vocab.js"></script>
+    <style>
+        :root {
+            --bg: #000000;
+            --border: #2f3336;
+            --text-main: #e7e9ea;
+            --text-gray: #71767b;
+            --vivid-blue: #1d9bf0;
+            --vivid-bg: rgba(29, 155, 240, 0.1);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            min-height: 100vh;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 110;
+        }
+
+        .shuffle-btn {
+            background: var(--vivid-blue);
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 9999px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 53px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 16px;
+            font-weight: bold;
+            color: var(--text-gray);
+            cursor: pointer;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .tab.active { color: var(--text-main); }
+        .tab.active::after {
+            content: "";
+            position: absolute; bottom: 0; left: 20%; width: 60%; height: 4px;
+            background: var(--vivid-blue); border-radius: 99px;
+        }
+
+        .post { display: flex; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        .post-content { flex-grow: 1; }
+        .user-info { display: flex; gap: 4px; font-size: 15px; margin-bottom: 2px; }
+        .display-name { font-weight: bold; }
+        .handle { color: var(--text-gray); }
+        .main-text { font-size: 18px; line-height: 1.5; margin: 8px 0; }
+
+        .vocab-word { font-size: 28px; font-weight: 800; color: var(--vivid-blue); cursor: pointer; }
+        .vocab-highlight { color: var(--vivid-blue); font-weight: bold; cursor: pointer; border-bottom: 1px dotted var(--vivid-blue); }
+
+        .reveal-btn {
+            background: transparent;
+            border: 1px solid var(--vivid-blue);
+            color: var(--vivid-blue);
+            padding: 8px 20px;
+            border-radius: 9999px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .revealed-box {
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid var(--vivid-blue);
+            border-radius: 12px;
+            background: var(--vivid-bg);
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        #popover {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 400px; background: #1d9bf0; color: white;
+            padding: 16px; border-radius: 16px; display: none; z-index: 1000;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { bottom: -100px; } to { bottom: 20px; } }
+
+        .actions {
+            display: flex; justify-content: space-between;
+            max-width: 425px; margin-top: 12px;
+            color: var(--text-gray); font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="popover">
+    <span style="float: right; cursor: pointer;" onclick="this.parentElement.style.display='none'">×</span>
+    <b id="pop-word" style="font-size: 1.2rem; display: block;"></b>
+    <span id="pop-def"></span>
+</div>
+
+<div class="container">
+    <div class="header">
+        <span style="font-weight: 800; font-size: 20px;">Study-X</span>
+        <button class="shuffle-btn" onclick="handleShuffle()">Shuffle Feed</button>
+    </div>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('vocab', this)">Vocab</div>
+        <div class="tab" onclick="switchTab('test', this)">Test</div>
+        <div class="tab" onclick="switchTab('story', this)">Story</div>
+    </div>
+    <div id="feed"></div>
+</div>
+
+<script>
+    // Stories only need the text. Username logic is dynamic.
+    let stories = [
+        { text: "The explorers had to Abandon their camp. They found an Abundant source of water but were warned not to Abuse it." },
+        { text: "An Abundant harvest allows animals to thrive. We must never Abuse this balance or Abandon our duty to the earth." }
+    ];
+
+    const names = ["Daily", "Nature", "Wild", "Global", "Urban", "Vintage", "Future", "Mindful"];
+    const nouns = ["Narrative", "Echoes", "Pulse", "Writer", "Journal", "Flow", "Logic", "Vision"];
+
+    let currentMode = 'vocab';
+
+    function switchTab(mode, el) {
+        currentMode = mode;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        renderFeed();
+    }
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function getRandomUser() {
+        const name = names[Math.floor(Math.random() * names.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        return { display: `${name} ${noun}`, handle: `@${name.toLowerCase()}_${noun.toLowerCase()}` };
+    }
+
+    function getRandomStats() {
+        const fmt = (num) => num > 999 ? (num/1000).toFixed(1) + 'k' : num;
+        return {
+            replies: fmt(Math.floor(Math.random() * 500)),
+            reposts: fmt(Math.floor(Math.random() * 2000)),
+            likes: fmt(Math.floor(Math.random() * 10000)),
+            views: fmt(Math.floor(Math.random() * 100000 + 5000))
+        };
+    }
+
+    function handleShuffle() {
+        if (currentMode === 'story') shuffle(stories);
+        else shuffle(vocab); // Shuffles the array from vocab.js
+        renderFeed();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'en-US';
+        window.speechSynthesis.speak(msg);
+    }
+
+    function showDef(wordStr) {
+        const item = vocab.find(v => v.word.toLowerCase() === wordStr.toLowerCase());
+        if (!item) return;
+        speak(item.word);
+        document.getElementById('pop-word').innerText = item.word;
+        document.getElementById('pop-def').innerText = item.definition;
+        document.getElementById('popover').style.display = 'block';
+    }
+
+    function revealTest(index, word) {
+        document.getElementById(`reveal-btn-${index}`).style.display = 'none';
+        document.getElementById(`test-box-${index}`).style.display = 'block';
+        speak(word);
+    }
+
+    function highlightText(text) {
+        let highlighted = text;
+        vocab.forEach(item => {
+            const regex = new RegExp(`\\b${item.word}\\b`, 'gi');
+            highlighted = highlighted.replace(regex, (match) => `<span class="vocab-highlight" onclick="showDef('${item.word}')">${match}</span>`);
+        });
+        return highlighted;
+    }
+
+    function renderFeed() {
+        const feedEl = document.getElementById('feed');
+        feedEl.innerHTML = '';
+        
+        const dataSet = currentMode === 'story' ? stories : vocab;
+
+        dataSet.forEach((item, i) => {
+            const user = currentMode === 'vocab' ? {display: item.word + "Bot", handle: "@study"} : getRandomUser();
+            const stats = getRandomStats();
+            
+            let contentHtml = '';
+            if (currentMode === 'vocab') {
+                contentHtml = `<div class="vocab-word" onclick="showDef('${item.word}')">${item.word}</div>`;
+            } else if (currentMode === 'test') {
+                contentHtml = `
+                    <div class="main-text" style="font-size: 19px;">${item.definition}</div>
+                    <button class="reveal-btn" id="reveal-btn-${i}" onclick="revealTest(${i}, '${item.word}')">Reveal Word</button>
+                    <div class="revealed-box" id="test-box-${i}">
+                        <div class="vocab-word" onclick="speak('${item.word}')">${item.word}</div>
+                    </div>`;
+            } else {
+                contentHtml = `<div class="main-text">${highlightText(item.text)}</div>`;
+            }
+
+            feedEl.innerHTML += `
+            <div class="post">
+                <div class="post-content">
+                    <div class="user-info"><span class="display-name">${user.display}</span><span class="handle">${user.handle} · Just now</span></div>
+                    ${contentHtml}
+                    <div class="actions">
+                        <span>💬 ${stats.replies}</span>
+                        <span>🔄 ${stats.reposts}</span>
+                        <span>❤️ ${stats.likes}</span>
+                        <span>📊 ${stats.views}</span>
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+
+    // Initial Load
+    window.onload = renderFeed;
+</script>
+</body>
+</html>
