@@ -148,7 +148,7 @@
     </div>
     <div class="tabs">
         <div class="tab " onclick="switchTab('vocab', this)">Vocab</div>
-       <!--  <div class="tab " onclick="switchTab('test', this)">Test</div> -->
+       <!--  <div class="tab" onclick="switchTab('test', this)">Test</div> -->
         <div class="tab active" onclick="switchTab('story', this)">Story</div>
     </div>
     <div id="feed"></div>
@@ -166,8 +166,8 @@
     const names = ["Daily", "Nature", "Wild", "Global", "Urban", "Vintage", "Future", "Mindful"];
     const nouns = ["Narrative", "Echoes", "Pulse", "Writer", "Journal", "Flow", "Logic", "Vision","YoungLife","SuperCats","CloudyNight","DummyFish","LoudSinger"];
     const time= ['just now','1m','2m','5m','10m','15m','25m','30m','45m','1hr','2hr','3hr','1d','3d']
-    let currentMode = 'vocab';
-
+    let currentMode = 'story';
+   
     function switchTab(mode, el) {
         currentMode = mode;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -337,4 +337,3 @@ function speak(text) {
 </script>
 </body>
 </html>
-
