@@ -222,6 +222,17 @@ function speak(text) {
     if (isChinese) {
         // 'zh-HK' is the standard code for Hong Kong Cantonese
         msg.lang = 'zh-HK';
+
+    msg.rate = 0.7;
+
+    // 3. CRITICAL FOR iOS: Manually find and set a Cantonese voice
+    // iOS often ignores .lang unless the .voice is explicitly set.
+    const voices = window.speechSynthesis.getVoices();
+    const cantoneseVoice = voices.find(v => v.lang === 'zh-HK' || v.lang.includes('yue'));
+    
+    if (cantoneseVoice) {
+        msg.voice = cantoneseVoice;
+    }
     } else {
         // Default to US English
         msg.lang = 'en-US';
