@@ -93,7 +93,7 @@
         .main-text { font-size: 18px; line-height: 1.5; margin: 8px 0; }
 
         .vocab-word { font-size: 28px; font-weight: 800; color: var(--vivid-blue); cursor: pointer; }
-        .vocab-highlight { color: var(--vivid-blue); font-weight: bold; cursor: pointer; border-bottom: 1px dotted var(--vivid-blue); }
+        .vocab-highlight { color: #3fdcf4 }
 
         .reveal-btn {
             background: transparent;
@@ -148,22 +148,24 @@
     </div>
     <div class="tabs">
         <div class="tab active" onclick="switchTab('vocab', this)">Vocab</div>
-        <div class="tab" onclick="switchTab('test', this)">Test</div>
+       <!--  <div class="tab" onclick="switchTab('test', this)">Test</div> -->
         <div class="tab" onclick="switchTab('story', this)">Story</div>
     </div>
     <div id="feed"></div>
-</div>
 
+<br><br><br><br><br>
+</div>
 <script>
+    shuffle(vocab);
     // Stories only need the text. Username logic is dynamic.
-    let stories = [
-        { text: "The explorers had to Abandon their camp. They found an Abundant source of water but were warned not to Abuse it." },
-        { text: "An Abundant harvest allows animals to thrive. We must never Abuse this balance or Abandon our duty to the earth." }
-    ];
+    // let stories = [
+    //     { name:'x',text: "xxx" },
+    //     { name:'x',text: "An Abundant harvest allows animals to thrive. We must never Abuse this balance or Abandon our duty to the earth." }
+    // ];
 
     const names = ["Daily", "Nature", "Wild", "Global", "Urban", "Vintage", "Future", "Mindful"];
-    const nouns = ["Narrative", "Echoes", "Pulse", "Writer", "Journal", "Flow", "Logic", "Vision"];
-
+    const nouns = ["Narrative", "Echoes", "Pulse", "Writer", "Journal", "Flow", "Logic", "Vision","YoungLife","SuperCats","CloudyNight","DummyFish","LoudSinger"];
+    const time= ['just now','1m','2m','5m','10m','15m','25m','30m','45m','1hr','2hr','3hr','1d','3d']
     let currentMode = 'vocab';
 
     function switchTab(mode, el) {
@@ -180,10 +182,14 @@
         }
     }
 
-    function getRandomUser() {
-        const name = names[Math.floor(Math.random() * names.length)];
-        const noun = nouns[Math.floor(Math.random() * nouns.length)];
-        return { display: `${name} ${noun}`, handle: `@${name.toLowerCase()}_${noun.toLowerCase()}` };
+    function getRandomFeed() {
+       
+        return nouns[Math.floor(Math.random() * nouns.length)]
+    } 
+
+    function getRandomTime() {
+       
+        return time[Math.floor(Math.random() * time.length)]
     }
 
     function getRandomStats() {
@@ -203,34 +209,56 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function speak(text) {
-        window.speechSynthesis.cancel();
-        const msg = new SpeechSynthesisUtterance(text);
+function speak(text) {
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+    
+    const msg = new SpeechSynthesisUtterance(text);
+
+    // Regex to detect if text contains Chinese characters (Cantonese)
+    // Range \u4E00-\u9FFF covers common Chinese ideographs
+    const isChinese = /[\u4E00-\u9FFF]/.test(text);
+
+    if (isChinese) {
+        // 'zh-HK' is the standard code for Hong Kong Cantonese
+        msg.lang = 'zh-HK';
+    } else {
+        // Default to US English
         msg.lang = 'en-US';
-        window.speechSynthesis.speak(msg);
     }
 
+    window.speechSynthesis.speak(msg);
+}
+
+   
+
     function showDef(wordStr) {
+        wordStr=wordStr.slice(1);
+       
         const item = vocab.find(v => v.word.toLowerCase() === wordStr.toLowerCase());
-        if (!item) return;
+        if (!item) return ;
         speak(item.word);
         document.getElementById('pop-word').innerText = item.word;
         document.getElementById('pop-def').innerText = item.definition;
         document.getElementById('popover').style.display = 'block';
     }
 
-    function revealTest(index, word) {
-        document.getElementById(`reveal-btn-${index}`).style.display = 'none';
-        document.getElementById(`test-box-${index}`).style.display = 'block';
-        speak(word);
-    }
+    // function revealTest(index, word) {
+    //     document.getElementById(`reveal-btn-${index}`).style.display = 'none';
+    //     document.getElementById(`test-box-${index}`).style.display = 'block';
+    //     speak(word);
+    // }
 
     function highlightText(text) {
         let highlighted = text;
+        
         vocab.forEach(item => {
+            
             const regex = new RegExp(`\\b${item.word}\\b`, 'gi');
-            highlighted = highlighted.replace(regex, (match) => `<span class="vocab-highlight" onclick="showDef('${item.word}')">${match}</span>`);
+            highlighted = highlighted.replace(regex, (match) => `<span class="vocab-highlight"  
+                 onclick="showDef('a${item.word}')" >${match}</span>`);
         });
+        
         return highlighted;
     }
 
@@ -241,36 +269,55 @@
         const dataSet = currentMode === 'story' ? stories : vocab;
 
         dataSet.forEach((item, i) => {
-            const user = currentMode === 'vocab' ? {display: item.word + "Bot", handle: "@study"} : getRandomUser();
+            const user = currentMode === 'vocab' ? {display: item.word + "Bot", handle: "@study"} : {display: item.name, handle: '@'+getRandomFeed()};
             const stats = getRandomStats();
             
             let contentHtml = '';
             if (currentMode === 'vocab') {
-                contentHtml = `<div class="vocab-word" onclick="showDef('${item.word}')">${item.word}</div>`;
-            } else if (currentMode === 'test') {
-                contentHtml = `
-                    <div class="main-text" style="font-size: 19px;">${item.definition}</div>
-                    <button class="reveal-btn" id="reveal-btn-${i}" onclick="revealTest(${i}, '${item.word}')">Reveal Word</button>
-                    <div class="revealed-box" id="test-box-${i}">
-                        <div class="vocab-word" onclick="speak('${item.word}')">${item.word}</div>
-                    </div>`;
-            } else {
-                contentHtml = `<div class="main-text">${highlightText(item.text)}</div>`;
+                contentHtml = `<div class="vocab-word" onclick="showDef('a${item.word}')">${item.word}</div>`;
+            } 
+            // else if (currentMode === 'test') {
+            //     contentHtml = `
+            //         <div class="main-text" style="font-size: 19px;">${item.definition}</div>
+            //         <button class="reveal-btn" id="reveal-btn-${i}" onclick="revealTest(${i}, '${item.word}')">Reveal Word</button>
+            //         <div class="revealed-box" id="test-box-${i}">
+            //             <div class="vocab-word" onclick="speak('${item.word}')">${item.word}</div>
+            //         </div>`;
+            // }
+             else {
+                    // Escape single quotes so they don't break the onclick='...'
+    // 1. Get your text
+    const x = item.text;
+
+    // 2. Build the HTML using a data attribute
+    // We use encodeURIComponent to ensure the text can't break the HTML structure
+     contentHtml = `
+      <div class="main-text" 
+           data-text="${encodeURIComponent(x)}" 
+           onclick="speak(decodeURIComponent(this.getAttribute('data-text')))">
+        ${highlightText(x)}
+      </div>`;
+
+
+
             }
 
             feedEl.innerHTML += `
-            <div class="post">
-                <div class="post-content">
-                    <div class="user-info"><span class="display-name">${user.display}</span><span class="handle">${user.handle} · Just now</span></div>
+            <div class="post"  >
+                <div class="post-content"  >
+                    <div class="user-info"><span class="display-name">${user.display}</span><span class="handle">${user.handle} · ${getRandomTime()} </span></div>
                     ${contentHtml}
-                    <div class="actions">
+                    <br>
+                    <div class="actions" >
                         <span>💬 ${stats.replies}</span>
                         <span>🔄 ${stats.reposts}</span>
                         <span>❤️ ${stats.likes}</span>
                         <span>📊 ${stats.views}</span>
                     </div>
                 </div>
-            </div>`;
+            </div>
+            
+            `;
         });
     }
 
