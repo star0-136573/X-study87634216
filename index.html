@@ -152,10 +152,12 @@
         <div class="tab active" onclick="switchTab('story', this)">Story</div>
     </div>
     <div id="feed"></div>
+    <div id="vocabs"></div>
 
 <br><br><br><br><br>
 </div>
 <script>
+    let currentMode='story';
     shuffle(vocab);
     // Stories only need the text. Username logic is dynamic.
     // let stories = [
@@ -166,13 +168,24 @@
     const names = ["Daily", "Nature", "Wild", "Global", "Urban", "Vintage", "Future", "Mindful"];
     const nouns = ["Narrative", "Echoes", "Pulse", "Writer", "Journal", "Flow", "Logic", "Vision","YoungLife","SuperCats","CloudyNight","DummyFish","LoudSinger"];
     const time= ['just now','1m','2m','5m','10m','15m','25m','30m','45m','1hr','2hr','3hr','1d','3d']
-    let currentMode = 'story';
+   
    
     function switchTab(mode, el) {
         currentMode = mode;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
-        renderFeed();
+        
+      if(mode=='vocab'){ 
+       
+        document.getElementById('vocabs').style.display='block';
+        document.getElementById('feed').style.display='none';
+
+      }else{
+       
+          document.getElementById('vocabs').style.display='none';
+        document.getElementById('feed').style.display='block';
+
+      }
     }
 
     function shuffle(array) {
@@ -205,11 +218,12 @@
     function handleShuffle() {
         if (currentMode === 'story') shuffle(stories);
         else shuffle(vocab); // Shuffles the array from vocab.js
-        renderFeed();
+        renderFeed(currentMode);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
 function speak(text) {
+    console.log(text);
     // Stop any current speech
     window.speechSynthesis.cancel();
     
@@ -273,8 +287,12 @@ function speak(text) {
         return highlighted;
     }
 
-    function renderFeed() {
-        const feedEl = document.getElementById('feed');
+    function renderFeed(currentMode) {
+        let feedEl='';
+        if(currentMode=='story')
+        feedEl = document.getElementById('feed');
+        else 
+        feedEl = document.getElementById('vocabs');
         feedEl.innerHTML = '';
         
         const dataSet = currentMode === 'story' ? stories : vocab;
@@ -298,21 +316,19 @@ function speak(text) {
              else {
                     // Escape single quotes so they don't break the onclick='...'
     // 1. Get your text
-    const x = item.text;
+   
 
     // 2. Build the HTML using a data attribute
     // We use encodeURIComponent to ensure the text can't break the HTML structure
      contentHtml = `
-      <div class="main-text" 
-           data-text="${encodeURIComponent(x)}" 
-           onclick="speak(decodeURIComponent(this.getAttribute('data-text')))">
-        ${highlightText(x)}
+      <div class="main-text" >
+        ${highlightText(item.text)}
       </div>`;
 
 
 
             }
-
+           const x = item.text;
             feedEl.innerHTML += `
             <div class="post"  >
                 <div class="post-content"  >
@@ -320,7 +336,8 @@ function speak(text) {
                     ${contentHtml}
                     <br>
                     <div class="actions" >
-                        <span>💬 ${stats.replies}</span>
+                        <span data-text="${encodeURIComponent(x)}" 
+         onclick="speak(decodeURIComponent(this.getAttribute('data-text')))" >💬 ${stats.replies}</span>
                         <span>🔄 ${stats.reposts}</span>
                         <span>❤️ ${stats.likes}</span>
                         <span>📊 ${stats.views}</span>
@@ -331,9 +348,10 @@ function speak(text) {
             `;
         });
     }
-
+    // renderFeed('vocabs');
+    // renderFeed('story');
     // Initial Load
-    window.onload = renderFeed;
-</script>
+   window.onload =[ renderFeed('story'),renderFeed('vocab')];
+// </script>
 </body>
 </html>
